@@ -35,10 +35,8 @@ export default function TopBar({ title, back, right, showHomeIcons = false }) {
       {/* Title */}
       <span className="flex-1 text-xs font-extrabold tracking-wide uppercase text-white truncate">{title}</span>
 
-      {/* Right slot OR home icons */}
-      {right ? (
-        <div className="flex items-center gap-1.5 flex-shrink-0">{right}</div>
-      ) : isMainChat && !back ? (
+      {/* Home icons on main chat */}
+      {isMainChat && !back && (
         <div className="flex items-center gap-0.5 flex-shrink-0">
           {/* Notifications */}
           <button
@@ -70,7 +68,12 @@ export default function TopBar({ title, back, right, showHomeIcons = false }) {
             <User size={17} />
           </button>
         </div>
-      ) : null}
+      )}
+
+      {/* Optional right slot */}
+      {right && (
+        <div className="flex items-center gap-1.5 flex-shrink-0">{right}</div>
+      )}
     </div>
   )
 }

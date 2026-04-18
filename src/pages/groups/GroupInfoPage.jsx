@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { Globe, Lock, LogOut, Crown, UserPlus, UserMinus, Trash2, Edit2 } from 'lucide-react'
+import { Globe, Lock, LogOut, Crown, UserPlus, UserMinus, Trash2, Edit2, ArrowRightLeft } from 'lucide-react'
 import TopBar from '../../components/layout/TopBar'
 import Avatar from '../../components/ui/Avatar'
 import Button from '../../components/ui/Button'
@@ -16,7 +16,7 @@ export default function GroupInfoPage() {
   const { groupId } = useParams()
   const navigate    = useNavigate()
   const { user }    = useAuthStore()
-  const { getGroup, leaveGroup, joinGroup, removeMember, updateGroup, deleteGroup } = useGroupStore()
+  const { getGroup, leaveGroup, joinGroup, removeMember, updateGroup, deleteGroup, transferAdmin } = useGroupStore()
   const group = getGroup(groupId)
 
   const [showEdit,   setEdit]   = useState(false)
@@ -78,6 +78,33 @@ export default function GroupInfoPage() {
     toast.success(`${USERS[uid]?.displayName} added to group!`)
   }
 
+  const handleLeaveGroup = () => {
+    const adminCount = group.admins?.length || 0
+    if (isAdmin && adminCount === 1) {
+      const otherMembers = (group.members || []).filter(m => m !== user?.id)
+      if (otherMembers.length === 0) {
+        return toast.error('You are the only member. Delete the group or add others first.')
+      }
+      setTransferTo(otherMembers[0])
+      return setTransfer(true)
+    }
+
+    leaveGroup(groupId, user?.id)
+    toast.info('You left the group')
+    navigate('/groups')
+  }
+
+  const confirmTransferAndLeave = () => {
+    if (!transferTo) return toast.error('Pick a member to promote')
+    transferAdmin(groupId, user?.id, transferTo)
+    leaveGroup(groupId, user?.id)
+    setTransfer(false)
+    setTransferTo(null)
+    toast.success(`${USERS[transferTo]?.displayName} is now an admin`)
+    toast.info('You left the group')
+    navigate('/groups')
+  }
+
   return (
     <div className="flex flex-col h-full bg-white">
       <TopBar
@@ -113,12 +140,7 @@ export default function GroupInfoPage() {
         {/* Actions */}
         <div className="px-4 py-3 border-b border-brand-border flex flex-col gap-2">
           {isMember ? (
-            <Button variant="danger" onClick={() => {
-              if (isAdmin && group.members?.length === 1) return toast.error('You are the only member. Delete the group or add others first.')
-              leaveGroup(groupId, user?.id)
-              toast.info('You left the group')
-              navigate('/groups')
-            }}>
+            <Button variant="danger" onClick={handleLeaveGroup}>
               <LogOut size={14} /> Leave Group
             </Button>
           ) : (
@@ -265,51 +287,45 @@ export default function GroupInfoPage() {
         </div>
       </Modal>
 
-      {/* Transfer Admin Modal */}
-      <Modal open={showTransfer} onClose={() => { setTransfer(false); setTransferTo(null) }} title="Transfer Admin Role">
+      {/* Transfer Admin Before Leaving Modal */}
+      <Modal open={showTransfer} onClose={() => { setTransfer(false); setTransferTo(null) }} title="Transfer admin before leaving">
         <div className="px-5 py-4">
-          <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-4">
-            <p className="text-xs font-bold text-amber-800">
-              You are the only admin. You must assign another member as admin before leaving.
+          <div className="bg-brand-surface border border-brand-border rounded-xl p-3 mb-4">
+            <p className="text-xs text-brand-deep font-semibold leading-relaxed">
+              You are the only admin in <strong>{group.name}</strong>. Choose a member to promote before you leave.
             </p>
           </div>
-          <p className="text-xs text-brand-mute mb-3 font-semibold">Choose a member to become admin:</p>
-          <div className="space-y-1 mb-4 max-h-48 overflow-y-auto thin-scroll">
+
+          <div className="space-y-1 mb-4 max-h-56 overflow-y-auto thin-scroll">
             {(group.members || []).filter(uid => uid !== user?.id).map(uid => {
               const u = USERS[uid] || {}
+              const selected = transferTo === uid
               return (
-                <button key={uid}
+                <button
+                  key={uid}
                   onClick={() => setTransferTo(uid)}
-                  className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-xl border-2 transition-colors text-left
-                    ${transferTo === uid ? 'border-brand-orange bg-brand-orange-pale' : 'border-brand-border hover:border-brand-mid'}`}>
-                  <Avatar userId={uid} size={32} />
-                  <div>
-                    <p className="text-sm font-bold text-gray-900">{u.displayName}</p>
-                    <p className="text-xs text-brand-mute">@{u.username}</p>
+                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border transition-colors text-left ${
+                    selected ? 'border-brand-orange bg-brand-orange-pale' : 'border-brand-border hover:bg-brand-surface'
+                  }`}
+                >
+                  <Avatar userId={uid} size={34} />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-bold text-gray-900 truncate">{u.displayName}</p>
+                    <p className="text-[10px] text-brand-mute">@{u.username}</p>
                   </div>
-                  {transferTo === uid && <span className="ml-auto text-brand-orange font-black">✓</span>}
+                  {selected && <Crown size={13} className="text-brand-orange" />}
                 </button>
               )
             })}
           </div>
+
           <div className="flex flex-col gap-2">
-            <Button
-              disabled={!transferTo}
-              onClick={() => {
-                if (!transferTo) return
-                // Make transferTo an admin, then leave
-                updateGroup(groupId, {
-                  admins: [...(group.admins || []).filter(id => id !== user?.id), transferTo]
-                })
-                leaveGroup(groupId, user?.id)
-                setTransfer(false)
-                toast.success(`${USERS[transferTo]?.displayName} is now admin. You left the group.`)
-                navigate('/groups')
-              }}
-            >
-              Transfer & Leave Group
+            <Button onClick={confirmTransferAndLeave} disabled={!transferTo}>
+              <ArrowRightLeft size={14} /> Transfer & Leave Group
             </Button>
-            <Button variant="ghost" onClick={() => { setTransfer(false); setTransferTo(null) }}>Cancel</Button>
+            <Button variant="ghost" onClick={() => { setTransfer(false); setTransferTo(null) }}>
+              Cancel
+            </Button>
           </div>
         </div>
       </Modal>

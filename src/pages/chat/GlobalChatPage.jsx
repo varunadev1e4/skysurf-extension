@@ -1,6 +1,6 @@
 import { useRef, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ChevronDown, Sparkles, MessageCircle, Users, Star, Flag, BookmarkPlus, ToggleLeft, ToggleRight, MoreHorizontal } from 'lucide-react'
+import { ChevronDown, Sparkles, MessageCircle, Users, Star, BookmarkPlus, ToggleLeft, ToggleRight } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import useChatStore from '../../store/chatStore'
 import useAuthStore from '../../store/authStore'
@@ -21,7 +21,6 @@ export default function GlobalChatPage() {
   const navigate  = useNavigate()
   const bottomRef = useRef(null)
   const [urlOpen,    setUrlOpen]    = useState(false)
-  const [siteMenu,   setSiteMenu]   = useState(false)
   const [addColOpen, setAddCol]     = useState(false)
   const [replyTo,    setReplyTo]    = useState(null)
 
@@ -61,11 +60,6 @@ export default function GlobalChatPage() {
     setAddCol(false)
   }
 
-  const handleReportUrl = () => {
-    setSiteMenu(false)
-    toast.info('URL reported to Skysurf moderation. Thanks!')
-  }
-
   return (
     <div className="flex flex-col h-full bg-white">
       <TopBar
@@ -77,42 +71,7 @@ export default function GlobalChatPage() {
                 <button onClick={() => navigate('/signin')} className="text-white/90 text-[11px] font-bold border border-white/40 rounded-lg px-2.5 py-1 hover:bg-white/10 transition-colors">Sign In</button>
                 <button onClick={() => navigate('/signup')} className="bg-brand-orange text-white text-[11px] font-bold rounded-lg px-2.5 py-1 hover:bg-brand-orange-light transition-colors">Sign Up</button>
               </div>
-            ) : (
-              <div className="relative">
-                <button onClick={() => setSiteMenu(m => !m)} className="w-8 h-8 rounded-full flex items-center justify-center text-white/80 hover:bg-white/10 transition-colors">
-                  <MoreHorizontal size={18} />
-                </button>
-                {siteMenu && (
-                  <>
-                    <div className="fixed inset-0 z-10" onClick={() => setSiteMenu(false)} />
-                    <div className="absolute right-0 top-9 bg-white border border-brand-border rounded-xl shadow-card overflow-hidden z-20 min-w-[190px]">
-                      <button onClick={() => { toggleFavorite(activeUrl); setSiteMenu(false); toast.success(fav ? 'Removed from favourites' : 'Added to favourites!') }}
-                        className="flex items-center gap-2.5 w-full px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-brand-surface">
-                        <Star size={14} className={fav ? 'text-yellow-500 fill-yellow-500' : 'text-brand-mute'} />
-                        {fav ? 'Remove from Favourites' : 'Add to Favourites'}
-                      </button>
-                      <button onClick={() => { setAddCol(true); setSiteMenu(false) }}
-                        className="flex items-center gap-2.5 w-full px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-brand-surface">
-                        <BookmarkPlus size={14} className="text-brand-mute" /> Add to Collection
-                      </button>
-                      <div className="h-px bg-brand-border mx-3" />
-                      <button
-                        onClick={() => { setAcceptDMs(!acceptDMs); setSiteMenu(false); toast.info(acceptDMs ? 'DM requests paused' : 'DM requests enabled') }}
-                        className="flex items-center gap-2.5 w-full px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-brand-surface"
-                      >
-                        {acceptDMs ? <ToggleRight size={14} className="text-green-500" /> : <ToggleLeft size={14} className="text-brand-mute" />}
-                        {acceptDMs ? 'Accepting DMs' : 'DMs Paused'}
-                      </button>
-                      <div className="h-px bg-brand-border mx-3" />
-                      <button onClick={handleReportUrl}
-                        className="flex items-center gap-2.5 w-full px-4 py-2.5 text-sm font-semibold text-red-600 hover:bg-red-50">
-                        <Flag size={14} /> Report this URL
-                      </button>
-                    </div>
-                  </>
-                )}
-              </div>
-            )
+            ) : null
         }
       />
 
@@ -159,6 +118,20 @@ export default function GlobalChatPage() {
         <button onClick={() => navigate('/groups')} className="flex items-center gap-1 text-[10px] font-bold text-brand-mute bg-brand-surface border border-brand-border rounded-full px-2.5 py-1 hover:bg-brand-light transition-colors whitespace-nowrap flex-shrink-0">
           <Users size={10} /> Groups
         </button>
+        {isAuthenticated && (
+          <button
+            onClick={() => { toggleFavorite(activeUrl); toast.success(fav ? 'Removed from favourites' : 'Added to favourites!') }}
+            className={`flex items-center gap-1 text-[10px] font-bold border rounded-full px-2.5 py-1 transition-colors whitespace-nowrap flex-shrink-0 ${
+              fav ? 'text-yellow-700 bg-yellow-50 border-yellow-200' : 'text-brand-mute bg-brand-surface border-brand-border'
+            }`}>
+            <Star size={10} className={fav ? 'fill-yellow-500 text-yellow-500' : ''} /> {fav ? 'Favourited' : 'Favourite'}
+          </button>
+        )}
+        {isAuthenticated && (
+          <button onClick={() => setAddCol(true)} className="flex items-center gap-1 text-[10px] font-bold text-brand-mute bg-brand-surface border border-brand-border rounded-full px-2.5 py-1 hover:bg-brand-light transition-colors whitespace-nowrap flex-shrink-0">
+            <BookmarkPlus size={10} /> Add to Collection
+          </button>
+        )}
         {isAuthenticated && (
           <button
             onClick={() => { setAcceptDMs(!acceptDMs); toast.info(acceptDMs ? 'DMs paused' : 'DMs enabled') }}

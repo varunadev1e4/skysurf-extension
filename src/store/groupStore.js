@@ -61,6 +61,15 @@ const useGroupStore = create((set, get) => ({
       return { groups: { ...s.groups, [groupId]: { ...g, members: [...g.members, userId], memberCount: g.memberCount + 1 } } }
     }),
 
+  transferAdmin: (groupId, fromUserId, toUserId) =>
+    set(s => {
+      const g = s.groups[groupId]
+      if (!g || !g.members.includes(toUserId)) return s
+      const nextAdmins = g.admins.filter(a => a !== fromUserId)
+      if (!nextAdmins.includes(toUserId)) nextAdmins.push(toUserId)
+      return { groups: { ...s.groups, [groupId]: { ...g, admins: nextAdmins } } }
+    }),
+
   sendGroupMessage: (groupId, text, userId, replyTo = null) => {
     const msg = { id: nanoid(), userId, text, time: new Date().toISOString(), reacts: {}, replyTo, readBy: [userId] }
     set(s => {
